@@ -1,9 +1,11 @@
+from textwrap import indent
 from tkinter import *
 from tkinter import font
 from tkinter import messagebox
 from turtle import title
 from random import choice, randint, shuffle
 import pyperclip
+import json
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def generate_password():
@@ -27,22 +29,45 @@ def generate_password():
 # ---------------------------- SAVE PASSWORD ------------------------------- #
 
 def save_data():
-    website = website_input.get()
-    email = email_input.get()
+    website = website_input.get().lower()
+    email = email_input.get().lower()
     password = password_input.get()
+    new_data = {
+        website:{
+            'email': email,
+            'password': password,
+            }
+        }
 
     if len(website) == 0 or len(email) == 0 or len(password) == 0:
         messagebox.showinfo(title='Empty field', message='There can not be empty fields.')
     else:
-        is_ok = messagebox.askokcancel(title=website, message=f'These are the details entered: \nEmail: {email} \nPassword: {password} \nIs it ok to save?')
-        
-        if is_ok:
-            file2write=open('Saved Data', 'a')
-            file2write.write(f'{website} | {email} | {password}\n')
-            file2write.close()
+        try:
+            with open('data.json', 'r') as data_file:
+                data = json.load(data_file)
+                data.update(new_data)
+            with open('data.json', 'w') as data_file:
+                json.dump(data, data_file, indent=4)
+        except FileNotFoundError:
+            with open('data.json', 'w') as data_file:
+                json.dump(new_data, data_file, indent=4)
+        finally:
+            website_input.delete(0, END)
+            password_input.delete(0, END)
 
-        website_input.delete(0, END)
-        password_input.delete(0, END)
+# SEARCH
+
+def search_data():
+    try:
+        with open('data.json', 'r') as data_file:
+            data = json.load(data_file)
+            website = website_input.get().lower()
+            if website in data:
+                messagebox.showinfo(title=website, message=f'Email: {data[website]["email"]}\nPassword: {data[website]["password"]}')
+            else:
+                messagebox.showinfo(title='Website not found', message='Website not registered')
+    except FileNotFoundError:
+        messagebox.showinfo(title='Website not found', message='Website not registered')
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -66,28 +91,25 @@ email_label.grid(row=2, column=0)
 password_label = Label(text='Password:', font=('arial', 15,))
 password_label.grid(row=3, column=0)
 
-
 # ENTRIES
-website_input = Entry(width=39)
-website_input.grid(row=1, column=1, columnspan=2)
+website_input = Entry(width=21)
+website_input.grid(row=1, column=1)
 website_input.focus()
 
 email_input = Entry(width=39)
 email_input.grid(row=2, column=1, columnspan=2)
 
-
 password_input = Entry(width=21)
 password_input.grid(row=3, column=1)
-
 
 # BUTTONS
 generate_button = Button(text='Generate Password', command=generate_password)
 generate_button.grid(row=3, column=2)
 
-
+generate_button = Button(text='Search', command=search_data)
+generate_button.grid(row=1, column=2)
 
 add_button = Button(text='Add', width=33, command=save_data)
 add_button.grid(row=4, column=1, columnspan=2)
-
 
 window.mainloop()
